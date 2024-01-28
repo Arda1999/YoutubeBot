@@ -4,21 +4,18 @@ const fetch = require("node-fetch");
 const csv = require("fast-csv");
 const csvParser = require("csv-parser");
 
-// API anahtarınızı buraya girin
 const apiKey = "";
 
-// Belirli etiketlerle ilişkilendirilmiş popüler "shorts" videolarını alma
 async function getPopularShortsByTags(tags, maxResults = 2) {
   const youtube = google.youtube({
     version: "v3",
     auth: apiKey,
   });
 
-  const tagQuery = tags.map((tag) => `#${tag}`).join(" "); // Etiketleri birleştir
-
+  const tagQuery = tags.map((tag) => `#${tag}`).join(" ");
   const response = await youtube.search.list({
     part: "snippet",
-    q: `#shorts ${tagQuery}`, // Belirli etiketlerle ilişkilendirilmiş popüler "shorts" videoları
+    q: `#shorts ${tagQuery}`,
     type: "video",
     maxResults: maxResults,
   });
@@ -26,7 +23,6 @@ async function getPopularShortsByTags(tags, maxResults = 2) {
   return response.data.items;
 }
 
-// Videoyu MP4 olarak kaydetme
 async function saveVideoToDisk(videoId, title, videoUrl) {
   const youtube = google.youtube({
     version: "v3",
@@ -39,37 +35,29 @@ async function saveVideoToDisk(videoId, title, videoUrl) {
   });
 
   const videoUrl1 = videoUrl;
-  console.log(videoUrl1); // videoUrl değişkeninin değerini kontrol edin
-
+  console.log(videoUrl1);
   try {
-    // Video içeriğini al
     const videoResponse = await fetch(videoUrl);
     const videoBuffer = await videoResponse.buffer();
 
-    // Dosyaya yaz
     const filePath = `./${title}.mp4`;
     await fs.promises.writeFile(filePath, videoBuffer);
 
     console.log(`Video kaydedildi: ${filePath}`);
 
-    // CSV dosyasına video ismini ekle
     addToCSV(title);
   } catch (error) {
     console.error("Video indirilirken hata oluştu:", error);
   }
 }
 
-// CSV dosyasına video ismini ekleme
 function addToCSV(videoTitle) {
   const csvFilePath = "video_list.csv";
 
-  // CSV dosyasını kontrol et
   if (!fs.existsSync(csvFilePath)) {
-    // Dosya yoksa başlık ekleyerek oluştur
     fs.writeFileSync(csvFilePath, "Video Title\n");
   }
 
-  // CSV dosyasını oku
   const existingTitles = [];
   fs.createReadStream(csvFilePath)
     .pipe(csvParser())
@@ -77,20 +65,17 @@ function addToCSV(videoTitle) {
       existingTitles.push(row["Video Title"]);
     })
     .on("end", () => {
-      // Yeni video ismi CSV dosyasında var mı kontrol et
       if (existingTitles.includes(videoTitle)) {
         console.log("Uyarı: Bu video zaten kaydedilmiş!");
       } else {
-        // Yeni video ismini CSV dosyasına ekle
         fs.appendFileSync(csvFilePath, `"${videoTitle}"\n`);
         console.log("Video ismi CSV dosyasına eklendi.");
       }
     });
 }
 
-// Kodun çalıştırılması
 async function main() {
-  const tags = ["komikhayvan", "memes"]; // İlgili etiketler
+  const tags = ["komikhayvan", "memes"];
   const shortsVideos = await getPopularShortsByTags(tags);
 
   for (const video of shortsVideos) {
